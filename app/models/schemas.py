@@ -1,0 +1,233 @@
+from enum import Enum
+from typing import Dict, Optional
+from pydantic import BaseModel, Field, model_validator
+
+
+# =========================================================
+# Scraping
+# =========================================================
+
+class ScrapeMode(str, Enum):
+    SEARCH = "search"
+    URL = "url"
+    URL_AUTH = "url_auth"
+    TRUSTPILOT = "trustpilot"
+    YELP = "yelp"
+
+
+class ScrapeRequest(BaseModel):
+    """
+    Requête de scraping
+    - search      : recherche multi-produits Amazon
+    - url         : un produit Amazon via URL
+    - url_auth    : un produit Amazon via URL + cookies/login
+    - trustpilot  : avis Trustpilot
+    - yelp        : avis Yelp
+    """
+
+    mode: ScrapeMode = Field(
+        default=ScrapeMode.SEARCH,
+        description="Mode de scraping"
+    )
+
+    # =====================
+    # AMAZON - SEARCH
+    # =====================
+    query: Optional[str] = Field(
+        default=None,
+        description="[SEARCH] Terme de recherche Amazon"
+    )
+    nb_products: Optional[int] = Field(
+        default=10,
+        ge=1,
+        le=100,
+        description="[SEARCH] Nombre de produits à scraper"
+    )
+
+    # =====================
+    # AMAZON - URL / URL_AUTH
+    # =====================
+    product_url: Optional[str] = Field(
+        default=None,
+        description="[URL / URL_AUTH] URL du produit Amazon"
+    )
+
+    username: Optional[str] = Field(
+        default=None,
+        description="[URL_AUTH] Email Amazon"
+    )
+    password: Optional[str] = Field(
+        default=None,
+        description="[URL_AUTH] Mot de passe Amazon"
+    )
+    cookies_only: bool = Field(
+        default=False,
+        description="[URL_AUTH] Si true, utilise uniquement les cookies (pas de login manuel)"
+    )
+
+    france_only: bool = Field(
+        default=True,
+        description="Filtrer uniquement les avis français"
+    )
+    limit_per_product: Optional[int] = Field(
+        default=None,
+        ge=1,
+        description="Limite d'avis par produit (None = tous)"
+    )
+    headless: bool = Field(
+        default=True,
+        description="Chrome headless"
+    )
+
+    # =====================
+    # TRUSTPILOT
+    # =====================
+    trustpilot_domain: Optional[str] = Field(
+        default=None,
+        description="[TRUSTPILOT] Domaine ex: carhartt-wip.com"
+    )
+    trustpilot_lang: Optional[str] = Field(
+        default="fr",
+        description="[TRUSTPILOT] Langue"
+    )
+
+    # =====================
+    # YELP / TRUSTPILOT
+    # =====================
+    yelp_business_url: Optional[str] = Field(
+        default=None,
+        description="[YELP] URL Yelp business"
+    )
+    max_pages: Optional[int] = Field(
+        default=1,
+        ge=1,
+        le=200,
+        description="[TP / YELP] Nombre de pages"
+    )
+
+    # =====================
+    # VALIDATION
+    # =====================
+    @model_validator(mode="after")
+    def validate_by_mode(self):
+        if self.mode == ScrapeMode.SEARCH and not self.query:
+            raise ValueError("query requis en mode SEARCH")
+
+        if self.mode == ScrapeMode.URL and not self.product_url:
+            raise ValueError("product_url requis en mode URL")
+
+        if self.mode == ScrapeMode.URL_AUTH:
+            if not self.product_url:
+                raise ValueError("product_url requis en mode URL_AUTH")
+            if not self.cookies_only and not (self.username and self.password):
+                raise ValueError(
+                    "URL_AUTH: fournissez username/password ou activez cookies_only"
+                )
+
+        if self.mode == ScrapeMode.TRUSTPILOT and not self.trustpilot_domain:
+            raise ValueError("trustpilot_domain requis")
+
+        if self.mode == ScrapeMode.YELP and not self.yelp_business_url:
+            raise ValueError("yelp_business_url requis")
+
+        if self.product_url and not self.product_url.startswith("http"):
+            raise ValueError("L'URL doit commencer par http:// ou https://")
+
+        return self
+
+
+    class Config:
+        json_schema_extra = {
+            "examples": [
+                {
+                    "mode": "search",
+                    "query": "écran pc",
+                    "nb_products": 10,
+                    "france_only": True,
+                    "limit_per_product": 5,
+                    "headless": True
+                },
+                {
+                    "mode": "url",
+                    "product_url": "https://www.amazon.fr/dp/B0F1FSGNLT",
+                    "france_only": True,
+                    "limit_per_product": 50,
+                    "headless": True
+                },
+                {
+                    "mode": "url_auth",
+                    "product_url": "https://www.amazon.fr/dp/B0F1FSGNLT",
+                    "username": "email@example.com",
+                    "password": "motdepasse",
+                    "france_only": True,
+                    "limit_per_product": 50,
+                    "headless": False
+                }
+            ]
+        }
+
+
+class ScrapeResponse(BaseModel):
+    """Réponse lors du lancement d'un scraping"""
+    task_id: str
+    status: str
+    message: str
+    mode: str
+
+
+# =========================================================
+# Tasks
+# =========================================================
+
+class TaskStatus(BaseModel):
+    task_id: str
+    status: str
+    progress: Optional[str] = None
+    result_file: Optional[str] = None
+    error: Optional[str] = None
+    started_at: Optional[str] = None
+    completed_at: Optional[str] = None
+
+
+class TasksList(BaseModel):
+    total: int
+    tasks: Dict[str, TaskStatus]
+
+
+# =========================================================
+# Health
+# =========================================================
+
+class HealthResponse(BaseModel):
+    status: str
+    timestamp: str
+    active_tasks: int
+    total_tasks: int
+
+
+# =========================================================
+# Analysis (sentiment + replies)
+# =========================================================
+
+class AnalysisRequest(BaseModel):
+    scrape_task_id: str = Field(..., description="ID de la tâche de scraping terminée")
+    use_gpu: bool = Field(default=True, description="Utiliser GPU si dispo")
+    output_csv: bool = Field(default=True, description="Générer un CSV")
+    output_json: bool = Field(default=False, description="Générer aussi un JSON enrichi")
+
+
+class AnalysisResponse(BaseModel):
+    analysis_task_id: str
+    status: str
+    message: str
+
+
+class AnalysisTaskStatus(BaseModel):
+    task_id: str
+    source_scrape_task_id: str
+    status: str
+    progress: Optional[str] = None
+    result_file: Optional[str] = None
+    error: Optional[str] = None
+    started_at: Optional[str] = None
+    completed_at: Optional[str] = None
