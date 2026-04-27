@@ -10,6 +10,7 @@ Système complet de scraping d'avis Amazon avec analyse de sentiment IA et gén�
 - [Prérequis](#prérequis)
 - [Installation](#installation)
 - [Démarrage rapide](#démarrage-rapide)
+- [Docker](#docker)
 - [Utilisation détaillée](#utilisation-détaillée)
 - [API Endpoints](#api-endpoints)
 - [Structure du projet](#structure-du-projet)
@@ -142,6 +143,60 @@ GET /tasks/{task_id}
   "completed_at": "2026-01-30 23:35:42"
 }
 ```
+
+---
+
+## Docker
+
+### Prérequis
+
+- [Docker](https://docs.docker.com/get-docker/) + [Docker Compose](https://docs.docker.com/compose/)
+- [nvidia-container-toolkit](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/install-guide.html) pour le GPU
+
+### Démarrage
+
+**1. Copier le fichier d'environnement**
+```bash
+cp .env.example .env
+```
+
+**2. Builder l'image**
+```bash
+docker compose build
+```
+
+> Premier build : ~5 min (Chrome + dépendances Python). Les suivants sont quasi instantanés grâce au cache.
+
+**3. Lancer l'API**
+```bash
+docker compose up
+```
+
+L'API est disponible sur **http://localhost:8000/docs**
+
+**Arrêter :**
+```bash
+docker compose down
+```
+
+### Volumes
+
+| Volume | Contenu |
+|--------|---------|
+| `./data` | Base SQLite + exports CSV/JSON (persisté sur ta machine) |
+| `hf_cache` | Modèles Hugging Face (BERT, Mistral) — téléchargés une seule fois |
+
+> Les modèles IA (~15 Go pour Mistral-7B) sont téléchargés au **premier appel** à `/analysis/sentiment` ou `/analysis/responses`, pas au démarrage du conteneur.
+
+### GPU
+
+Le GPU est activé par défaut dans `docker-compose.yml`.  
+Vérifier que nvidia-container-toolkit est installé :
+```bash
+docker run --rm --gpus all nvidia/cuda:12.0-base nvidia-smi
+```
+
+Pour désactiver le GPU, commenter le bloc `deploy` dans `docker-compose.yml`.
 
 ---
 
@@ -351,7 +406,12 @@ LIMIT 10;
 
 ## Structure du projet
 ```
-github_project_web_scrapp_amazon/
+projet_webscrap_voffi/
+├── Dockerfile
+├── docker-compose.yml
+├── .env.example
+├── pyproject.toml
+├── uv.lock
 ├── app/
 │   ├── core/
 │   │   ├── task_manager.py          # Gestion des tâches de scraping
