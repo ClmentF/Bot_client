@@ -1,6 +1,8 @@
 # Amazon Reviews Scraper — Command Runner
 # Usage: just <commande>
 
+set shell := ["bash", "-cu"]
+
 # Afficher les commandes disponibles
 default:
     @just --list
@@ -37,8 +39,11 @@ format:
 typecheck:
     uv run mypy app/
 
-# Lint + format + typecheck
-check: lint format typecheck
+# Lint + format + typecheck (séquentiel)
+check:
+    just lint
+    just format
+    just typecheck
 
 # ── Docker ────────────────────────────────────────────────────────────────────
 
@@ -48,6 +53,7 @@ build:
 
 # Lancer l'API via Docker (GPU activé)
 up:
+    @[ -f .env ] || cp .env.example .env && echo "→ .env créé depuis .env.example"
     docker compose up
 
 # Lancer en arrière-plan
@@ -82,11 +88,11 @@ db-stats:
 
 # Supprimer les fichiers Python compilés
 clean:
-    find . -type d -name __pycache__ -exec rm -rf {} + 2>/dev/null; \
-    find . -name "*.pyc" -delete 2>/dev/null; \
-    echo "Nettoyage terminé"
+    find . -type d -name __pycache__ -exec rm -rf {} + || true
+    find . -name "*.pyc" -delete || true
+    @echo "Nettoyage terminé"
 
 # Supprimer les exports CSV/JSON (garder la BDD)
 clean-results:
-    rm -rf data/results/
-    echo "Exports supprimés"
+    rm -rf data/results/ || true
+    @echo "Exports supprimés"

@@ -1,3 +1,4 @@
+import os
 from typing import Optional, Dict, Any
 from app.core.task_manager import task_manager
 from app.config import settings
@@ -30,9 +31,13 @@ def execute_scraping_task(task_id: str, request_data: Dict[str, Any]) -> None:
 
         mode = request_data.get("mode", "search")
         headless = request_data.get("headless", True)
+        in_docker = os.getenv("FORCE_HEADLESS", "").lower() == "true"
+        if in_docker:
+            headless = True
         cookies_only = request_data.get("cookies_only", False)
 
-        use_profile = (mode == "search")
+        # --user-data-dir crash Chrome dans Docker
+        use_profile = (mode == "search") and not in_docker
 
         # =====================================================
         # Results / Cookies paths

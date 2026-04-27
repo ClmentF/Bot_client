@@ -9,8 +9,10 @@ services:
     environment:
       - RESULTS_DIR=/app/data/results
       - SELENIUM_PROFILE_DIR=/app/data/selenium_profiles/amazon
+      - FORCE_HEADLESS=true
     env_file:
-      - .env
+      - path: .env
+        required: false
     restart: unless-stopped
     deploy:
       resources:
