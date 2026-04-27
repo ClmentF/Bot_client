@@ -1,10 +1,12 @@
 from selenium import webdriver
+from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.common.exceptions import TimeoutException, NoSuchElementException
 from selenium.webdriver.common.action_chains import ActionChains
+from webdriver_manager.chrome import ChromeDriverManager
 
 import time
 import os
@@ -51,6 +53,8 @@ class AmazonReviewScraper:
         # Options de base
         self.options.add_argument("--no-sandbox")
         self.options.add_argument("--disable-dev-shm-usage")
+        self.options.add_argument("--disable-gpu")
+        self.options.add_argument("--no-zygote")
         self.options.add_argument("--window-size=1920,1080")
         self.options.add_argument("--disable-session-crashed-bubble")
         self.options.add_argument("--disable-restore-session-state")
@@ -65,7 +69,8 @@ class AmazonReviewScraper:
         if headless:
             self.options.add_argument("--headless=new")
 
-        self.driver = webdriver.Chrome(options=self.options)
+        service = Service(ChromeDriverManager().install())
+        self.driver = webdriver.Chrome(service=service, options=self.options)
 
         self.driver.execute_cdp_cmd(
             "Page.addScriptToEvaluateOnNewDocument",
