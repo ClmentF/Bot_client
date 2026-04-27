@@ -1,0 +1,54 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.egg
+*.egg-info/
+dist/
+build/
+.eggs/
+
+# Environnement virtuel
+.venv/
+venv/
+env/
+
+# UV
+.uv/
+
+# Données sensibles & générées
+data/
+*.db
+*.db-shm
+*.db-wal
+
+# Cookies Amazon (credentials)
+app/results/*.pkl
+**/*.pkl
+
+# Exports résultats
+app/results/
+
+# Variables d'environnement
+.env
+.env.*
+!.env.example
+
+# Modèles IA téléchargés (Hugging Face cache)
+.cache/
+*.bin
+*.safetensors
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
