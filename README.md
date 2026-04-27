@@ -10,6 +10,7 @@ Système complet de scraping d'avis Amazon avec analyse de sentiment IA et gén�
 - [Prérequis](#prérequis)
 - [Installation](#installation)
 - [Démarrage rapide](#démarrage-rapide)
+- [Commandes just](#commandes-just)
 - [Docker](#docker)
 - [Utilisation détaillée](#utilisation-détaillée)
 - [API Endpoints](#api-endpoints)
@@ -43,7 +44,8 @@ Système complet de scraping d'avis Amazon avec analyse de sentiment IA et gén�
 **Obligatoire**
 - Python 3.13 ou supérieur
 - Chrome/Chromium installé
-- UV (gestionnaire de paquets)
+- [UV](https://docs.astral.sh/uv/) (gestionnaire de paquets)
+- [just](https://just.systems/) (command runner)
 
 **Optionnel**
 - CUDA pour accélération GPU
@@ -80,8 +82,7 @@ Cette commande va :
 
 ### 1. Lancer l'API
 ```bash
-cd app
-uv run uvicorn app.main:app --reload
+just dev
 ```
 
 Au premier lancement, la base de données se crée automatiquement dans `data/avis_scraping.db`.
@@ -146,6 +147,36 @@ GET /tasks/{task_id}
 
 ---
 
+## Commandes just
+
+Lister toutes les commandes disponibles :
+```bash
+just
+```
+
+| Commande | Description |
+|----------|-------------|
+| `just install` | Installer les dépendances |
+| `just dev` | Lancer l'API en dev (hot reload) |
+| `just start` | Lancer l'API en production |
+| `just lint` | Vérifier le code (ruff) |
+| `just lint-fix` | Corriger automatiquement |
+| `just format` | Formater le code |
+| `just typecheck` | Vérifier les types (mypy) |
+| `just check` | lint + format + typecheck |
+| `just build` | Builder l'image Docker |
+| `just up` | Lancer via Docker (GPU) |
+| `just up-detached` | Lancer en arrière-plan |
+| `just down` | Arrêter les conteneurs |
+| `just logs` | Voir les logs en temps réel |
+| `just rebuild` | Rebuild complet + relance |
+| `just db` | Ouvrir la BDD SQLite |
+| `just db-stats` | Stats des avis par source |
+| `just clean` | Supprimer les `__pycache__` |
+| `just clean-results` | Supprimer les exports CSV/JSON |
+
+---
+
 ## Docker
 
 ### Prérequis
@@ -162,21 +193,21 @@ cp .env.example .env
 
 **2. Builder l'image**
 ```bash
-docker compose build
+just build
 ```
 
 > Premier build : ~5 min (Chrome + dépendances Python). Les suivants sont quasi instantanés grâce au cache.
 
 **3. Lancer l'API**
 ```bash
-docker compose up
+just up
 ```
 
 L'API est disponible sur **http://localhost:8000/docs**
 
 **Arrêter :**
 ```bash
-docker compose down
+just down
 ```
 
 ### Volumes
@@ -410,6 +441,7 @@ projet_webscrap_voffi/
 ├── Dockerfile
 ├── docker-compose.yml
 ├── .env.example
+├── justfile
 ├── pyproject.toml
 ├── uv.lock
 ├── app/
